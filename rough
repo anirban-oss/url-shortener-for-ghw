@@ -1,0 +1,35 @@
+from flask import Flask
+app = Flask(__name__)
+
+from sqlalchemy import Column, String
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
+class URL(Base):
+    __tablename__ = "urls"
+    original = Column(String, primary_key=True)
+    shortened = Column(String)
+
+from pyshorteners import Shortener
+from models import URL
+
+@app.route("/shorten", methods=["POST"])
+def shorten():
+    s = Shortener()
+    original_url = request.form["original_url"]
+    shortened_url = s.tinyurl.short(original_url)
+    url = URL(original=original_url, shortened=shortened_url)
+    db.session.add(url)
+    db.session.commit()
+    return shortened_url
+
+from flask import redirect
+
+@app.route("/<shortened_url>")
+def redirect(shortened_url):
+    url = URL.query.filter_by(shortened=shortened_url).first()
+    return redirect(url.original)
+
+if __name__ == "__main__":
+    app.run()
